@@ -123,6 +123,11 @@ def get_default_rules():
         "min_len": default_sg.min_len
     }
 
+@app.get("/")
+def read_root():
+    return {"message": "Hello, World! The API is running!, add /docs to the end of this URL to learn how to use it."}
+
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
