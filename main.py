@@ -104,8 +104,8 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
             )
         else:
             # Get the tiles to play from rack
-            tile_list = [solver.tiles[i] for i in range(len(tiles)) if tiles[i] == 1]
-            set_list = [solver.sets[i] for i in range(len(sets)) if sets[i] == 1]
+            tile_list = [solver.tiles[i] for i in range(len(tiles)) for _ in range(int(tiles[i])) if tiles[i] > 0]
+            set_list = [solver.sets[i] for i in range(len(sets)) for _ in range(int(sets[i])) if sets[i] > 0]
 
             # Convert back to human-readable format
             readable_tiles = [custom_r_tile_map[t] for t in tile_list]
