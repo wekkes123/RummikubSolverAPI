@@ -43,7 +43,7 @@ def place_joker_in_run(tile_set):
 
     tiles = [tile for tile in tile_set[1:] if tile != 'j']
 
-    numbers = sorted([int(tile.split('-')[1]) for tile in tiles])
+    numbers = sorted([int(tile[1:]) for tile in tiles])
 
     joker_insert_value = None
     for i in range(len(numbers) - 1):
@@ -60,11 +60,10 @@ def place_joker_in_run(tile_set):
         new_set.insert(insert_index, 'j')
         return new_set
 
-
     new_set = ['r']
     inserted = False
-    for tile in sorted(tiles, key=lambda x: int(x.split('-')[1])):
-        value = int(tile.split('-')[1])
+    for tile in sorted(tiles, key=lambda x: int(x[1:])):
+        value = int(tile[1:])
         if not inserted and value > joker_insert_value:
             new_set.append('j')
             inserted = True
@@ -227,8 +226,7 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                 try:
                     labeled_sets[i] = place_joker_in_run(lset)
                 except Exception as e:
-                    lset[0] = 'R'
-                    labeled_sets[i] = lset
+                    print("parse error", e)
 
             # Check if initial meld meets point requirement
             if initial_meld and point_value < 30:
