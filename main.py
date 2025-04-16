@@ -94,6 +94,7 @@ class Move(BaseModel):
     value: float
     success: bool
     message: str = ""
+    joker_value: Optional[int] = None
 
 
 @app.post("/solve", response_model=Move)
@@ -136,87 +137,75 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                 sets_to_make=[],
                 value=0,
                 success=False,
-                message="No valid move found - should pick up a tile."
+                message="No valid move found - should pick up a tile.",
+                joker_value=None
             )
         else:
-            # Get the tiles to play from rack
             tile_list = [solver.tiles[i] for i in range(len(tiles)) for _ in range(int(tiles[i])) if tiles[i] > 0]
             set_list = [solver.sets[i] for i in range(len(sets)) for _ in range(int(sets[i])) if sets[i] > 0]
 
-            # Convert back to human-readable format
             readable_tiles = [custom_r_tile_map[t] for t in tile_list]
             readable_sets = [[custom_r_tile_map[t] for t in s] for s in set_list]
 
-            # Calculate actual point value for initial meld check
             point_value = 0
+            joker_value = None
 
-            # Process each set to identify type and calculate values
             labeled_sets = []
 
             for set_tiles in readable_sets:
-                # For each set, identify if it's a run or a group
                 is_run = False
                 colors = set()
                 numbers = []
 
-                # Extract numbers and colors to determine set type
+
                 for tile in set_tiles:
-                    if tile != 'j':  # Skip jokers for now
-                        colors.add(tile[0])  # First character is color
+                    if tile != 'j':
+                        colors.add(tile[0])
                         try:
-                            numbers.append(int(tile[1:]))  # Rest is the number
+                            numbers.append(int(tile[1:]))
                         except ValueError:
                             pass
 
-                # Determine if it's a run or group
                 if len(colors) <= 1:
-                    # If all tiles have the same color (or would with jokers), it's likely a run
                     is_run = True
                     set_type = 'r'  # 'r' for run
                 elif len(set(numbers)) <= 1 and numbers:
-                    # If all tiles have different colors, it could be a group (same number)
                     is_run = False
                     set_type = 'g'  # 'g' for group
                 else:
-                    # Default to run if we can't determine
                     is_run = True
                     set_type = 'r'
 
-                # Create a new set with type label at the beginning
                 labeled_set = [set_type] + set_tiles
                 labeled_sets.append(labeled_set)
 
-                # Calculate values for each tile in the set
                 for tile in set_tiles:
-                    if tile == 'j':  # Joker handling
+                    if tile == 'j':
                         if is_run and numbers:
-                            # For runs, joker value is the missing number
                             sorted_numbers = sorted(numbers)
                             if len(sorted_numbers) > 1:
-                                # Find gaps in the sequence
                                 for i in range(len(sorted_numbers) - 1):
                                     if sorted_numbers[i + 1] - sorted_numbers[i] > 1:
-                                        # Joker represents a value in the gap
                                         joker_value = sorted_numbers[i] + 1
                                         point_value += joker_value
                                         break
                                 else:
-                                    # No gaps, joker is at beginning or end
                                     if min(sorted_numbers) > 1:
-                                        point_value += min(sorted_numbers) - 1  # Joker before min
+                                        joker_value = min(sorted_numbers) - 1  # Joker before min
+                                        point_value += joker_value
                                     else:
-                                        point_value += max(sorted_numbers) + 1  # Joker after max
+                                        joker_value = max(sorted_numbers) + 1  # Joker after max
+                                        point_value += joker_value
                             else:
-                                # Only one number in the run, assume joker is adjacent
-                                point_value += numbers[0]  # Simple approximation
+                                joker_value = numbers[0]
+                                point_value += joker_value
                         elif not is_run and numbers:
-                            # For groups, joker value is the same as other tiles
-                            point_value += numbers[0]
+                            joker_value = numbers[0]
+                            point_value += joker_value
                         else:
-                            # Default case if we can't determine
+                            joker_value = 0
                             point_value += 0
                     else:
-                        # Regular tile - add its face value
                         try:
                             point_value += int(tile[1:])
                         except ValueError:
@@ -228,23 +217,23 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                 except Exception as e:
                     print("parse error", e)
 
-            # Check if initial meld meets point requirement
             if initial_meld and point_value < 30:
                 return Move(
                     tiles_to_play=[],
                     sets_to_make=[],
                     value=float(value),
                     success=False,
-                    message=f"Initial meld requires 30+ points. Current play: {point_value} points."
+                    message=f"Initial meld requires 30+ points. Current play: {point_value} points.",
+                    joker_value=None
                 )
 
-            # Include the actual point value in the response
             return Move(
                 tiles_to_play=readable_tiles,
                 sets_to_make=labeled_sets,
                 value=float(value),
                 success=True,
-                message=f"Valid move found. Point value: {point_value}"
+                message=f"Valid move found. Point value: {point_value}",
+                joker_value=joker_value
             )
 
     except Exception as e:
