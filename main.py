@@ -227,7 +227,8 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                 try:
                     labeled_sets[i] = place_joker_in_run(lset)
                 except Exception as e:
-                    labeled_sets[i] = lset[0] = 'R'
+                    lset[0] = 'R'
+                    labeled_sets[i] = lset
 
             # Check if initial meld meets point requirement
             if initial_meld and point_value < 30:
