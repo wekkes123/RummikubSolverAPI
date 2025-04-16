@@ -185,7 +185,7 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
 
                 # Create a new set with type label at the beginning
                 labeled_set = [set_type] + set_tiles
-                labeled_sets.append(place_joker_in_run(labeled_set))
+                labeled_sets.append(labeled_set)
 
                 # Calculate values for each tile in the set
                 for tile in set_tiles:
@@ -222,6 +222,9 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                             point_value += int(tile[1:])
                         except ValueError:
                             pass
+
+            for lset in labeled_sets:
+                place_joker_in_run(lset)
 
             # Check if initial meld meets point requirement
             if initial_meld and point_value < 30:
