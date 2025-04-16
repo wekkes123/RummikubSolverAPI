@@ -37,6 +37,43 @@ def create_number_maps(sg):
 
 tile_map, r_tile_map = create_number_maps(default_sg)
 
+def place_joker_in_run(tile_set):
+    if not tile_set or tile_set[0] != 'r' or 'j' not in tile_set:
+        return tile_set
+
+    tiles = [tile for tile in tile_set[1:] if tile != 'j']
+
+    numbers = sorted([int(tile.split('-')[1]) for tile in tiles])
+
+    joker_insert_value = None
+    for i in range(len(numbers) - 1):
+        if numbers[i + 1] - numbers[i] > 1:
+            joker_insert_value = numbers[i] + 1
+            break
+
+    if joker_insert_value is None:
+        if len(numbers) >= 2 and numbers[-2] == 13:
+            insert_index = 1
+        else:
+            insert_index = len(tile_set) - 1
+        new_set = [tile for tile in tile_set if tile != 'j']
+        new_set.insert(insert_index, 'j')
+        return new_set
+
+
+    new_set = ['r']
+    inserted = False
+    for tile in sorted(tiles, key=lambda x: int(x.split('-')[1])):
+        value = int(tile.split('-')[1])
+        if not inserted and value > joker_insert_value:
+            new_set.append('j')
+            inserted = True
+        new_set.append(tile)
+
+    if not inserted:
+        new_set.append('j')
+
+    return new_set
 
 # Pydantic models for request and response
 class GameConfig(BaseModel):
@@ -148,7 +185,7 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
 
                 # Create a new set with type label at the beginning
                 labeled_set = [set_type] + set_tiles
-                labeled_sets.append(labeled_set)
+                labeled_sets.append(place_joker_in_run(labeled_set))
 
                 # Calculate values for each tile in the set
                 for tile in set_tiles:
@@ -199,9 +236,8 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
             # Include the actual point value in the response
             return Move(
                 tiles_to_play=readable_tiles,
-                sets_to_make=labeled_sets,  # Use the labeled sets instead
+                sets_to_make=labeled_sets,
                 value=float(value),
-                actual_points=point_value,  # Add this to your Move model
                 success=True,
                 message=f"Valid move found. Point value: {point_value}"
             )
