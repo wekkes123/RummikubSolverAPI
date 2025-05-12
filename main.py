@@ -129,11 +129,12 @@ class GameState(BaseModel):
 
 class Move(BaseModel):
     tiles_to_play: List[str]
-    sets_to_make: List[List[str]]
+    sets_to_make: List[Tuple[List[str], List[int]]]
     value: float
     success: bool
     message: str = ""
     joker_value: Optional[int] = None
+
 
 
 @app.post("/solve", response_model=Move)
@@ -219,10 +220,10 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                     if number_of_colors == 1 and len(
                             tile_set) == 3:  # this special combination means that the set could be a run or a group, and the best option needs to be chosen
                         tile_set_g, grp_sum = sum_group(["g"] + tile_set)
-                        tile_set_r, run_sum, joker_array = place_joker_in_run(["r"] + tile_set)
+                        tile_set_r, run_sum, joker_arr = place_joker_in_run(["r"] + tile_set)
                         if initial_meld:
                             if run_sum > grp_sum:
-                                return tile_set_r, run_sum, joker_array
+                                return tile_set_r, run_sum, joker_arr
                             else:
                                 return tile_set_g, grp_sum
                         else:
@@ -242,7 +243,7 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                         joker_array = []
 
                     point_value += value_to_add
-                    labeled_sets.append([set_to_add,joker_array])
+                    labeled_sets.append((set_to_add, joker_array))
                 except Exception as e:
                     print("parse error", e)
 
