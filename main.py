@@ -208,14 +208,18 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                         return place_joker_in_run(tile_set)
                     else:
                         tile_set = ["g"] + tile_set
-                        return sum_group(tile_set), []
+                        ts, total = sum_group(tile_set)
+                        return ts, total, []
+
                 elif jokers == 1:
                     if number_of_colors == 1:
                         tile_set = ["r"] + tile_set
                         return place_joker_in_run(tile_set)
                     else:
                         tile_set = ["g"] + tile_set
-                        return sum_group(tile_set), []
+                        ts, total = sum_group(tile_set)
+                        return ts, total, []
+
                 else:
                     if number_of_colors == 1 and len(
                             tile_set) == 3:  # this special combination means that the set could be a run or a group, and the best option needs to be chosen
@@ -227,11 +231,15 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                             else:
                                 return tile_set_g, grp_sum, []
                         else:
-                            return sum_group(["g"] + tile_set), []
+                            tile_set = ["g"] + tile_set
+                            ts, total = sum_group(tile_set)
+                            return ts, total, []
                     elif number_of_colors == 1 and len(tile_set) > 3:
                         return place_joker_in_run(["r"] + tile_set)
                     else:
-                        return sum_group(["g"] + tile_set), []
+                        tile_set = ["g"] + tile_set
+                        ts, total = sum_group(tile_set)
+                        return ts, total, []
 
             for lset in readable_sets:
                 try:
@@ -251,7 +259,7 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                 return Move(
                     tiles_to_play=[],
                     sets_to_make=[],
-                    value=float(value),
+                    value=point_value,
                     success=False,
                     message=f"Initial meld requires 30+ points. Current play: {point_value} points.",
                 )
@@ -259,7 +267,7 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
             return Move(
                 tiles_to_play=readable_tiles,
                 sets_to_make=labeled_sets,
-                value=float(value),
+                value=point_value,
                 success=True,
                 message=f"Valid move found. Point value: {point_value}",
             )
