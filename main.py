@@ -225,10 +225,11 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                     else:
                         return sum_group(["g"] + tile_set)
 
-            for i, lset in enumerate(readable_sets):
+            for lset in readable_sets:
                 try:
-                    labeled_sets[i], value_to_add = identify(lset)
+                    set_to_add, value_to_add = identify(lset)
                     point_value += value_to_add
+                    labeled_sets.append(lset)
                 except Exception as e:
                     print("parse error", e)
 
@@ -243,6 +244,7 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
 
             return Move(
                 tiles_to_play=readable_tiles,
+                extra=readable_sets,
                 sets_to_make=labeled_sets,
                 value=float(value),
                 success=True,
