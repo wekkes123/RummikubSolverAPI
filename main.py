@@ -35,44 +35,76 @@ def create_number_maps(sg):
     return tile_map, r_tile_map
 
 
-tile_map, r_tile_map = create_number_maps(default_sg)
+def sum_group(tile_set):
+    tiles = tile_set[1:]
+    joker_count = tiles.count('j')
+    real_tiles = [tile for tile in tiles if tile != 'j']
+
+    numbers = [int(tile[1:]) for tile in real_tiles]
+    base_value = numbers[0]
+
+    total = base_value * len(real_tiles) + base_value * joker_count
+    return tile_set, total
+
 
 def place_joker_in_run(tile_set):
     if not tile_set or tile_set[0] != 'r' or 'j' not in tile_set:
-        return tile_set
+        total = sum(int(tile[1:]) for tile in tile_set[1:] if tile != 'j')
+        return tile_set, total
 
     tiles = [tile for tile in tile_set[1:] if tile != 'j']
+    joker_count = tile_set.count('j')
 
     numbers = sorted([int(tile[1:]) for tile in tiles])
+    filled_numbers = []
+    inserted_jokers = 0
+    i = 0
 
-    joker_insert_value = None
-    for i in range(len(numbers) - 1):
-        if numbers[i + 1] - numbers[i] > 1:
-            joker_insert_value = numbers[i] + 1
-            break
+    while i < len(numbers) - 1:
+        filled_numbers.append(numbers[i])
+        gap = numbers[i + 1] - numbers[i]
+        if gap == 1:
+            i += 1
+            continue
+        elif gap > 1:
+            missing = gap - 1
+            if inserted_jokers + missing <= joker_count:
+                for j in range(1, gap):
+                    filled_numbers.append(numbers[i] + j)
+                inserted_jokers += missing
+            else:
+                break
+        i += 1
 
-    if joker_insert_value is None:
-        if len(numbers) >= 2 and numbers[-2] == 13:
-            insert_index = 1
+    filled_numbers.append(numbers[-1])
+
+    while inserted_jokers < joker_count:
+        if filled_numbers[-1] < 13:
+            filled_numbers.append(filled_numbers[-1] + 1)
+        elif filled_numbers[0] > 1:
+            filled_numbers.insert(0, filled_numbers[0] - 1)
         else:
-            insert_index = len(tile_set) - 1
-        new_set = [tile for tile in tile_set if tile != 'j']
-        new_set.insert(insert_index, 'j')
-        return new_set
+            break
+        inserted_jokers += 1
+
+    filled_numbers.sort()
 
     new_set = ['r']
-    inserted = False
-    for tile in sorted(tiles, key=lambda x: int(x[1:])):
-        value = int(tile[1:])
-        if not inserted and value > joker_insert_value:
+    total_sum = 0
+    tiles_copy = tiles.copy()
+
+    for num in filled_numbers:
+        if tiles_copy and int(tiles_copy[0][1:]) == num:
+            tile = tiles_copy.pop(0)
+            new_set.append(tile)
+            total_sum += num
+        else:
             new_set.append('j')
-            inserted = True
-        new_set.append(tile)
+            total_sum += num
 
-    if not inserted:
-        new_set.append('j')
+    return new_set, total_sum
 
-    return new_set
+tile_map, r_tile_map = create_number_maps(default_sg)
 
 # Pydantic models for request and response
 class GameConfig(BaseModel):
@@ -148,72 +180,55 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
             readable_sets = [[custom_r_tile_map[t] for t in s] for s in set_list]
 
             point_value = 0
-            joker_value = None
-
             labeled_sets = []
 
-            for set_tiles in readable_sets:
-                is_run = False
-                colors = set()
+            def identify(tile_set):
+                jokers = 0
+                colors = []
                 numbers = []
-
-
-                for tile in set_tiles:
-                    if tile != 'j':
-                        colors.add(tile[0])
-                        try:
-                            numbers.append(int(tile[1:]))
-                        except ValueError:
-                            pass
-
-                if len(colors) <= 1:
-                    is_run = True
-                    set_type = 'r'  # 'r' for run
-                elif len(set(numbers)) <= 1 and numbers:
-                    is_run = False
-                    set_type = 'g'  # 'g' for group
-                else:
-                    is_run = True
-                    set_type = 'r'
-
-                labeled_set = [set_type] + set_tiles
-                labeled_sets.append(labeled_set)
-
-                for tile in set_tiles:
-                    if tile == 'j':
-                        if is_run and numbers:
-                            sorted_numbers = sorted(numbers)
-                            if len(sorted_numbers) > 1:
-                                for i in range(len(sorted_numbers) - 1):
-                                    if sorted_numbers[i + 1] - sorted_numbers[i] > 1:
-                                        joker_value = sorted_numbers[i] + 1
-                                        point_value += joker_value
-                                        break
-                                else:
-                                    if min(sorted_numbers) > 1:
-                                        joker_value = min(sorted_numbers) - 1  # Joker before min
-                                        point_value += joker_value
-                                    else:
-                                        joker_value = max(sorted_numbers) + 1  # Joker after max
-                                        point_value += joker_value
-                            else:
-                                joker_value = numbers[0]
-                                point_value += joker_value
-                        elif not is_run and numbers:
-                            joker_value = numbers[0]
-                            point_value += joker_value
-                        else:
-                            joker_value = 0
-                            point_value += 0
+                for tile in tile_set:
+                    if tile == "j":
+                        jokers += 1
+                        numbers.append(tile)
                     else:
-                        try:
-                            point_value += int(tile[1:])
-                        except ValueError:
-                            pass
+                        colors.append(tile[0])
+                        numbers.append(tile[1:])
+                number_of_colors = len(set(colors));
+                if jokers == 0:
+                    if number_of_colors == 1:
+                        tile_set = ["r"] + tile_set
+                        return place_joker_in_run(tile_set)
+                    else:
+                        tile_set = ["g"] + tile_set
+                        return sum_group(tile_set)
+                elif jokers == 1:
+                    if number_of_colors == 1:
+                        tile_set = ["r"] + tile_set
+                        return place_joker_in_run(tile_set)
+                    else:
+                        tile_set = ["g"] + tile_set
+                        return sum_group(tile_set)
+                else:
+                    if number_of_colors == 1 and len(
+                            tile_set) == 3:  # this special combination means that the set could be a run or a group, and the best option needs to be chosen
+                        tile_set_g, grp_sum = sum_group(["g"] + tile_set)
+                        tile_set_r, run_sum = place_joker_in_run(["r"] + tile_set)
+                        if initial_meld:
+                            if run_sum > grp_sum:
+                                return tile_set_r, run_sum
+                            else:
+                                return tile_set_g, grp_sum
+                        else:
+                            return sum_group(["g"] + tile_set)
+                    elif number_of_colors == 1 and len(tile_set) > 3:
+                        return place_joker_in_run(["r"] + tile_set)
+                    else:
+                        return sum_group(["g"] + tile_set)
 
-            for i, lset in enumerate(labeled_sets):
+            for i, lset in enumerate(readable_sets):
                 try:
-                    labeled_sets[i] = place_joker_in_run(lset)
+                    labeled_sets[i], value_to_add = identify(lset)
+                    point_value += value_to_add
                 except Exception as e:
                     print("parse error", e)
 
@@ -224,7 +239,6 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                     value=float(value),
                     success=False,
                     message=f"Initial meld requires 30+ points. Current play: {point_value} points.",
-                    joker_value=None
                 )
 
             return Move(
@@ -233,7 +247,6 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                 value=float(value),
                 success=True,
                 message=f"Valid move found. Point value: {point_value}",
-                joker_value=joker_value
             )
 
     except Exception as e:
