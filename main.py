@@ -208,14 +208,14 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                         return place_joker_in_run(tile_set)
                     else:
                         tile_set = ["g"] + tile_set
-                        return sum_group(tile_set)
+                        return sum_group(tile_set), []
                 elif jokers == 1:
                     if number_of_colors == 1:
                         tile_set = ["r"] + tile_set
                         return place_joker_in_run(tile_set)
                     else:
                         tile_set = ["g"] + tile_set
-                        return sum_group(tile_set)
+                        return sum_group(tile_set), []
                 else:
                     if number_of_colors == 1 and len(
                             tile_set) == 3:  # this special combination means that the set could be a run or a group, and the best option needs to be chosen
@@ -225,25 +225,25 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                             if run_sum > grp_sum:
                                 return tile_set_r, run_sum, joker_arr
                             else:
-                                return tile_set_g, grp_sum
+                                return tile_set_g, grp_sum, []
                         else:
-                            return sum_group(["g"] + tile_set)
+                            return sum_group(["g"] + tile_set), []
                     elif number_of_colors == 1 and len(tile_set) > 3:
                         return place_joker_in_run(["r"] + tile_set)
                     else:
-                        return sum_group(["g"] + tile_set)
+                        return sum_group(["g"] + tile_set), []
 
             for lset in readable_sets:
                 try:
                     result = identify(lset)
                     if len(result) == 3:
-                        set_to_add, value_to_add, joker_array = result
+                        set_to_add, value_to_add, joker_arr = result
                     else:
                         set_to_add, value_to_add = result
-                        joker_array = []
+                        joker_arr = []
 
                     point_value += value_to_add
-                    labeled_sets.append((set_to_add, joker_array))
+                    labeled_sets.append((set_to_add, joker_arr))
                 except Exception as e:
                     print("parse error", e)
 
