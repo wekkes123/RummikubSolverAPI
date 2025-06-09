@@ -12,7 +12,7 @@ class RummikubSolver:
 
         self.value = np.array([v for c in range(colours) for v in range(1, numbers+1)])
         if self.value.shape != self.tiles.shape:
-            self.value = np.append(self.value, 0)
+            self.value = np.append(self.value, 0.1)
 
         self.sets_matrix = np.array(
             [np.array([self.sets[j].count(self.tiles[i]) for j in range(len(self.sets))]) for i in
