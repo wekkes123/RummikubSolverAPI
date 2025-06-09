@@ -261,7 +261,7 @@ def solve_game(game_state: GameState, maximise: str = "tiles", initial_meld: boo
                     sets_to_make=[],
                     value=point_value,
                     success=False,
-                    message=f"Initial meld requires 30+ points. Current play: {point_value} points.",
+                    message=f"Initial meld requires 30+ points. Current play: {point_value} points. {readable_sets}",
                 )
 
             return Move(
